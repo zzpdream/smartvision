@@ -1,0 +1,116 @@
+ext {
+    //profile = project['profile']
+    profile = System.getProperty("profile") ?: "production"
+}
+
+def loadGroovy() {
+    def configFile = file('config.groovy')
+    new ConfigSlurper(profile).parse(configFile.toURL()).toProperties()
+}
+
+configure(allprojects) { project ->
+
+    group = "com.mws"
+    ext {
+        junitVersion = "4.11"
+        mysqlVersion = "5.1.24"
+        h2Version = "1.4.191"
+        springVersion = "3.2.11.RELEASE"
+        springLastVersion = "3.2.11.RELEASE"
+        jerseyVersion = "2.22.1"
+        jacksonVersion = "2.4.3"
+        tomcatjdbcVersion = "7.0.54"
+        logbackVersion = "1.1.2"
+        slf4jVersion = "1.7.6"
+        springjpaVersion = "1.6.1.RELEASE"
+        springredisVersion = "1.6.0.RELEASE"
+        hibernateVersion = "3.6.10.Final"
+        hibernateJpaVersion = "1.0.1.Final"
+        encacheVersion = "2.6.9"
+        jedisVersion = "2.6.0"
+        springDataMongodbVersion = "1.5.2.RELEASE"
+        httpclientVersion = "4.3.5"
+        jettyVersion = "8.1.16.v20140903"
+    }
+
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'jetty'
+
+    compileJava {
+        sourceCompatibility = 1.7
+        targetCompatibility = 1.7
+        options*.encoding = "UTF-8"
+    }
+
+
+    sourceSets.test.resources.srcDirs = ["src/test/resources", "src/test/java"]
+
+    test {
+        exclude '**/*Test.class'
+        //exclude '**/*IntegrationTest.class'
+    }
+
+}
+
+configure(subprojects) { subproject ->
+
+    ext {
+        version = '1.0'
+    }
+    apply plugin: 'java'
+
+    //中央仓库  
+    repositories {
+        mavenCentral()
+    }
+
+    //加载本地依赖  
+    dependencies {
+        compile "mysql:mysql-connector-java:${mysqlVersion}"
+        compile "org.slf4j:slf4j-api:${slf4jVersion}"
+        compile "ch.qos.logback:logback-classic:${logbackVersion}"
+        compile "com.googlecode.log4jdbc:log4jdbc:1.2"
+        compile("org.apache.tomcat:tomcat-jdbc:${tomcatjdbcVersion}")
+        compile "org.apache.commons:commons-lang3:3.3.2"
+        compile("org.springframework:spring-core:${springLastVersion}")
+        compile("org.springframework:spring-beans:${springLastVersion}")
+        compile("org.springframework:spring-context:${springLastVersion}")
+        compile("org.springframework:spring-context-support:${springLastVersion}")
+        compile("org.springframework:spring-web:${springLastVersion}")
+        compile("org.springframework:spring-expression:${springLastVersion}")
+        compile("org.springframework:spring-aop:${springLastVersion}")
+        compile("org.springframework:spring-tx:${springLastVersion}")
+        compile("org.springframework:spring-orm:${springLastVersion}")
+        compile "org.springframework.data:spring-data-commons:1.9.0.RELEASE"
+        compile("org.springframework.data:spring-data-jpa:${springjpaVersion}") {
+            //transitive = false
+            exclude module: "spring-core"
+            exclude module: "spring-context"
+            exclude module: "spring-aop"
+            exclude module: "spring-beans"
+            exclude module: "spring-tx"
+        }
+        compile "commons-collections:commons-collections:3.2.1"
+        compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
+        compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+        compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+        compile "org.aspectj:aspectjrt:1.8.2"
+
+        providedCompile "org.eclipse.jetty.aggregate:jetty-webapp:${jettyVersion}"
+        providedCompile "org.eclipse.jetty:jetty-jsp:${jettyVersion}"
+        testCompile "org.springframework:spring-test:${springLastVersion}"
+        testCompile(
+                "junit:junit:${junitVersion}"
+        )
+    }
+
+    //创建工程目录建构
+    task "createProject" << {
+        sourceSets*.java.srcDirs*.each { it.mkdirs() }
+        sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+    }
+
+}

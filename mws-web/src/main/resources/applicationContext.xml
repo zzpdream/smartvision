@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="GBK"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa-1.3.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd"
+       default-lazy-init="true">
+
+    <description>Spring公共配置</description>
+
+    <context:annotation-config/>
+    <!-- 使用annotation 自动注册bean,并检查@Required,@Autowired的属性已被注入 -->
+    <context:component-scan base-package="com.mws.web">
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+    </context:component-scan>
+
+    <context:component-scan base-package="com.mws.service">
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation"
+                                expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+    </context:component-scan>
+
+    <context:property-placeholder location="classpath:mina/server.properties" ignore-unresolvable="true"/>
+    
+    <context:property-placeholder location="classpath:netty/netty-server.properties" ignore-unresolvable="true" />
+
+ 	<!--加载静态数据-->
+    <bean class="com.mws.core.context.SpringContextHolder" lazy-init="false"/>
+    
+    <!--加载静态数据-->
+    <bean class="com.mws.web.context.SystemResourceInit" init-method="init" lazy-init="false"/>
+
+    <!-- Jpa Entity Manager 配置 -->
+    <bean id="entityManagerFactory"
+          class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="jpaVendorAdapter" ref="hibernateJpaVendorAdapter"/>
+        <property name="packagesToScan" value="com.mws.model"/>
+        <property name="jpaProperties">
+            <props>
+                <prop key="hibernate.cache.region.factory_class">net.sf.ehcache.hibernate.EhCacheRegionFactory</prop>
+                <prop key="hibernate.cache.use_query_cache">true</prop>
+                <prop key="hibernate.cache.use_second_level_cache">true</prop>
+                <prop key="hibernate.show_sql">false</prop>
+                <prop key="net.sf.ehcache.configurationResourceName">cache/ehcache-hibernate-local.xml</prop>
+                <prop key="hibernate.ejb.naming_strategy">com.mws.model.hibernate.CustomizeNamingStrategy</prop>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="hibernateJpaVendorAdapter"
+          class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+        <property name="databasePlatform">
+            <bean factory-method="getDialect"
+                  class="com.mws.web.common.persistence.Hibernates">
+                <constructor-arg ref="dataSource"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- Spring Data Jpa配置, 扫描base-package下所有继承于Repository<T,ID>的接口 -->
+    <jpa:repositories base-package="com.mws.web.repository"
+                      transaction-manager-ref="transactionManager"
+                      entity-manager-factory-ref="entityManagerFactory"/>
+    <jpa:repositories base-package="com.mws.model.repositories"
+                      transaction-manager-ref="transactionManager"
+                      entity-manager-factory-ref="entityManagerFactory"/>
+
+    <!-- 事务管理器配置, Jpa单数据源事务 -->
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+    </bean>
+
+    <!-- 使用annotation定义事务 -->
+    <tx:annotation-driven transaction-manager="transactionManager"
+                          proxy-target-class="true"/>
+
+
+    <!-- 任务配置 -->
+    <task:annotation-driven executor="taskExecutor"
+                            scheduler="myScheduler"/>
+    <bean id="taskExecutor"
+          class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <!-- 线程池维护线程的最少数量 -->
+        <property name="corePoolSize" value="2"/>
+        <!-- 线程池维护线程所允许的空闲时间 -->
+        <property name="keepAliveSeconds" value="300"/>
+        <!-- 线程池维护线程的最大数量 -->
+        <property name="maxPoolSize" value="8"/>
+        <!-- 线程池所使用的缓冲队列 -->
+        <property name="queueCapacity" value="100"/>
+    </bean>
+    <task:scheduler id="myScheduler" pool-size="10"/>
+
+    <!-- 定义aspectj -->
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+
+    <!-- hibernate validator -->
+    <bean id="validator"
+          class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean"/>
+
+
+    <!-- production环境 -->
+    <beans profile="production">
+        <context:property-placeholder ignore-resource-not-found="true"
+                                      location="classpath*:/application.properties"/>
+
+        <!-- 数据源配置,使用应用内的Tomcat JDBC连接池 -->
+        <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+            <!-- Connection Info -->
+            <property name="driverClassName" value="${jdbc.driver}"/>
+            <property name="url" value="${jdbc.url}"/>
+            <property name="username" value="${jdbc.username}"/>
+            <property name="password" value="${jdbc.password}"/>
+            <property name="maxActive" value="${jdbc.pool.maxActive}"/>
+            <property name="maxIdle" value="${jdbc.pool.maxIdle}"/>
+            <property name="minIdle" value="0"/>
+            <property name="defaultAutoCommit" value="false"/>
+            <!-- 连接Idle10分钟后超时，每1分钟检查一次 -->
+            <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+            <property name="minEvictableIdleTimeMillis" value="600000"/>
+        </bean>
+    </beans>
+
+    <!-- local development环境 -->
+    <beans profile="development">
+        <context:property-placeholder ignore-resource-not-found="true"
+                                      location="classpath*:/application.properties,
+          			  classpath*:/application.development.properties"/>
+
+        <!-- Tomcat JDBC连接池 -->
+        <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+            <property name="driverClassName" value="${jdbc.driver}"/>
+            <property name="url" value="${jdbc.url}"/>
+            <property name="username" value="${jdbc.username}"/>
+            <property name="password" value="${jdbc.password}"/>
+            <property name="defaultAutoCommit" value="false"/>
+        </bean>
+
+    </beans>
+</beans>

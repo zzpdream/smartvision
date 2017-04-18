@@ -1,0 +1,2 @@
+include "modules:core","modules:model","modules:service", "mws-web"
+rootProject.name="mws-server"

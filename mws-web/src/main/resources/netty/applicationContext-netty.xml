@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+       default-lazy-init="false">
+
+    <bean class="com.mws.web.net.netty.ConferenceServer" init-method="run" destroy-method="destroy" lazy-init="false">
+        <property name="port" value="${server.port}"/>
+        <property name="channelHandler" ref="chanelInitalizer"/>
+        <property name="channelOptions" ref="channelOptions"/>
+    </bean>
+
+
+    <!-- <bean id="serverHandler" class="com.mws.web.net.netty.ConferenceHandler"/> -->
+
+
+    <bean id="chanelInitalizer" class="com.mws.web.net.netty.ConferenceProtocolInitalizer">
+        <!-- <property name="handler" ref="serverHandler"/> -->
+    </bean>
+
+    <!-- Netty options for server bootstrap -->
+    <util:map id="channelOptions" map-class="java.util.HashMap">
+        <entry>
+            <key>
+                <util:constant static-field="io.netty.channel.ChannelOption.SO_KEEPALIVE"/>
+            </key>
+            <value type="java.lang.Boolean">${so.keepalive}</value>
+        </entry>
+        <entry>
+            <key>
+                <util:constant static-field="io.netty.channel.ChannelOption.SO_BACKLOG"/>
+            </key>
+            <value type="java.lang.Integer">${so.backlog}</value>
+        </entry>
+        <entry>
+            <key>
+                <util:constant static-field="io.netty.channel.ChannelOption.TCP_NODELAY"/>
+            </key>
+            <value type="java.lang.Boolean">${tcp_nodelay}</value>
+        </entry>
+        <entry>
+            <key>
+                <util:constant static-field="io.netty.channel.ChannelOption.SO_REUSEADDR"/>
+            </key>
+            <value type="java.lang.Boolean">${so.reuseaddr}</value>
+        </entry>
+    </util:map>
+
+</beans>

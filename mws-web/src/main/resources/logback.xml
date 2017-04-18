@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="GBK"?>
+<configuration>
+    <jmxConfigurator/>
+    <property name="LOG_HOME" value="/tmp/logs/mws"/>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- 典型的日志pattern -->
+        <encoder>
+            <pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+            </pattern>
+            <charset>GBK</charset>
+            <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+    <!-- 演示按时间滚动的策略 -->
+    <appender name="defaultLogFile"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/web.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/web.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 保留 30天数据，默认无限 -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+            </pattern>
+            <charset>GBK</charset>
+            <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+    <!-- 按文件大小滚动的策略 -->
+    <appender name="netLogFile"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/net.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/net.%i.log</fileNamePattern>
+            <!-- 最多保留10个文件，默认是7 -->
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>10MB</maxFileSize>
+        </triggeringPolicy>
+
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 网络TCP log 使用独立的appender，不继承Root的appender -->
+    <logger name="net" level="INFO" additivity="false">
+        <appender-ref ref="netLogFile"/>
+    </logger>
+
+    <logger name="com.mws.web" level="DEBUG"/>
+
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.apache.shiro" level="INFO"/>
+    <!--log4jdbc -->
+    <logger name="jdbc.sqltiming" level="INFO"/>
+    <logger name="org.hibernate" level="INFO"/>
+    <!-- cxf inbound/outbound logger -->
+    <logger name="org.glassfish.jersey" level="INFO"/>
+
+    <!-- root -->
+    <root level="INFO">
+        <appender-ref ref="console"/>
+        <appender-ref ref="defaultLogFile"/>
+    </root>
+</configuration>
